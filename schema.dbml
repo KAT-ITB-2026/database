@@ -1,0 +1,393 @@
+// OSKM 2026 — Dashboard (panitia) + Web Peserta (maba)
+// Shared, synced database across both projects.
+// Auth handled externally via SSO ("Web Companion"): login, forgot/reset password,
+// and credential storage all live outside this DB. This schema only stores the
+// resulting identity record + role.
+
+enum accounts_role_enum {
+  admin
+  mamet
+  mentor
+  user
+  hr
+}
+
+enum attendance_status_enum {
+  hadir
+  tidak_hadir
+  izin
+}
+
+enum assignment_type_enum {
+  wajib
+  sidequest_jelajah
+  sidequest_minat
+  sidequest_lainnya
+}
+
+enum submission_type_enum {
+  file
+  text
+  link
+}
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+table accounts {
+  id text [pk, not null]
+  nim text [not null, unique]
+  email text [not null, unique]        // ITB email, used for SSO login
+  full_name text
+  role accounts_role_enum [not null, default: 'user']
+  last_logged_in timestamp
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+}
+
+table users {
+  id text [pk, not null]               // FK -> accounts.id (1:1 profile extension)
+  fakultas text
+  prodi text
+  keluarga_id text                     // FK -> keluargas.id
+  bata_id text                         // FK -> batas.id (denormalized; kept in sync w/ keluarga_id by app)
+  foto_media_id text                   // FK -> media.id
+  tag_id text                          // FK -> tags.id
+  id_line text
+  no_hp text
+  instagram text
+  twitter text
+  linkedin text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+}
+
+// ---------------------------------------------------------------------------
+// Organizational hierarchy: bata > keluarga > users
+// ---------------------------------------------------------------------------
+
+table batas {
+  id text [pk, not null]
+  name text [not null]
+  group_link text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+}
+
+table keluargas {
+  id text [pk, not null]
+  bata_id text [not null]              // FK -> batas.id
+  name text [not null]
+  group_link text
+  mentor_name text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+}
+
+// ---------------------------------------------------------------------------
+// Media / Handbook
+// ---------------------------------------------------------------------------
+
+table media {
+  id text [pk, not null]
+  creator_id text                      // FK -> accounts.id
+  name text [not null]
+  bucket text [not null]
+  type text [not null]
+  url text [not null]
+  updated_at timestamp
+  created_at timestamp [default: `now()`]
+}
+
+table handbook {
+  id text [pk, not null]
+  title text [not null]
+  media_id text [not null]             // FK -> media.id
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+}
+
+// ---------------------------------------------------------------------------
+// Attendance (D-004, D-005, S-008)
+// ---------------------------------------------------------------------------
+
+table attendance_schedules {
+  id text [pk, not null]
+  day integer [not null]
+  title text [not null]                // judul mata acara
+  start_time "timestamp with time zone" [not null]
+  end_time "timestamp with time zone" [not null]
+  location text
+  lat real
+  lng real
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+}
+
+table user_attendances {
+  id text [pk, not null]
+  schedule_id text [not null]          // FK -> attendance_schedules.id
+  user_id text [not null]              // FK -> users.id
+  status attendance_status_enum [not null, default: 'tidak_hadir']
+  notes text                           // reason, mainly for izin
+  updated_by text                      // FK -> accounts.id, last editor
+  updated_at timestamp
+  created_at timestamp [default: `now()`]
+
+  indexes {
+    (schedule_id, user_id) [unique]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Profil scoring categories (D-006, D-010)
+// ---------------------------------------------------------------------------
+
+table profil_kats {
+  id text [pk, not null]
+  profil_number integer [not null, unique]
+  assignment_weight real [not null, default: 0]
+  attendance_weight real [not null, default: 0]
+  title text [not null]
+  description text
+}
+
+// ---------------------------------------------------------------------------
+// Assignments (D-006, D-007, S-006, S-007)
+// ---------------------------------------------------------------------------
+
+table assignments {
+  id text [pk, not null]
+  profil_kat_id text                   // FK -> profil_kats.id, nullable for sidequests
+  type assignment_type_enum [not null, default: 'wajib']
+  tag_id text                          // FK -> tags.id, used when type = sidequest_minat
+  day integer
+  title text [not null]
+  description text
+  start_date "timestamp with time zone" [not null]
+  end_date "timestamp with time zone" [not null]   // deadline
+  is_open boolean [not null, default: false]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+}
+
+table assignment_rubrics {
+  id text [pk, not null]
+  assignment_id text [not null]        // FK -> assignments.id
+  criteria text [not null]
+  weight real [not null]
+  min_score real [not null, default: 0]
+  max_score real [not null, default: 100]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+}
+
+table assignment_attachments {
+  id text [pk, not null]
+  assignment_id text [not null]        // FK -> assignments.id
+  label text
+  url text [not null]                  // gdrive pdf link
+  created_at timestamp [default: `now()`]
+}
+
+// Tags — used for sidequest-minat targeting (S-007 #2)
+table tags {
+  id text [pk, not null]
+  name text [not null, unique]
+}
+
+// Jelajah ITB — clue-based sub-tasks (S-007 #1)
+table assignment_clues {
+  id text [pk, not null]
+  assignment_id text [not null]        // FK -> assignments.id (type = sidequest_jelajah)
+  order_number integer [not null]
+  clue_text text
+  clue_image_media_id text             // FK -> media.id
+  qr_code_value text [not null]
+  lat real [not null]
+  lng real [not null]
+  radius_meters real [not null, default: 50]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+}
+
+table user_clue_scans {
+  id text [pk, not null]
+  clue_id text [not null]              // FK -> assignment_clues.id
+  user_id text [not null]              // FK -> users.id
+  scanned_lat real
+  scanned_lng real
+  is_valid boolean [not null, default: true]
+  scanned_at timestamp [default: `now()`]
+
+  indexes {
+    (clue_id, user_id) [unique]
+  }
+}
+
+// Submissions & grading (S-006, D-007)
+table submissions {
+  id text [pk, not null]
+  assignment_id text [not null]        // FK -> assignments.id
+  user_id text [not null]              // FK -> users.id
+  submission_type submission_type_enum [not null]
+  media_id text                        // FK -> media.id, used when type = file
+  content text                         // used when type = text or link
+  is_flagged boolean [not null, default: false]
+  flagged_reason text
+  submitted_at timestamp [default: `now()`]
+  graded_by text                       // FK -> accounts.id
+  graded_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (assignment_id, user_id) [unique]
+  }
+}
+
+table submission_rubric_scores {
+  id text [pk, not null]
+  submission_id text [not null]        // FK -> submissions.id
+  rubric_id text [not null]            // FK -> assignment_rubrics.id
+  score real [not null]
+  feedback text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    (submission_id, rubric_id) [unique]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Class selection — "Ruang Cakrawala" (S-010)
+// ---------------------------------------------------------------------------
+
+table classes {
+  id text [pk, not null]
+  class_name text [not null]
+  room text [not null]
+  quota integer [not null]
+  is_open boolean [not null, default: false]
+  lat real
+  lng real
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+}
+
+table class_registrations {
+  id text [pk, not null]
+  user_id text [not null]              // FK -> users.id
+  class_id text [not null]             // FK -> classes.id
+  is_auto_assigned boolean [not null, default: false]
+  registered_at timestamp [default: `now()`]
+
+  indexes {
+    user_id [unique]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Anonymous chat (S-013) — Tinder-style matchmaking, same scheme as last year
+// ---------------------------------------------------------------------------
+
+table user_matches {
+  id text [pk, not null]
+  topic text [not null]
+  is_active boolean [not null, default: true]
+  is_anonymous boolean [not null, default: true]
+  is_revealed boolean [not null, default: false]
+  first_user_id text [not null]        // FK -> users.id
+  second_user_id text [not null]       // FK -> users.id
+  last_message text
+  created_at timestamp [not null, default: `now()`]
+}
+
+table messages {
+  id bigserial [pk, not null, increment]
+  user_match_id text [not null]        // FK -> user_matches.id
+  sender_id text [not null]            // FK -> users.id
+  content text [not null]
+  created_at "timestamp with time zone" [not null, default: `now()`]
+}
+
+// ---------------------------------------------------------------------------
+// Home content (S-004)
+// ---------------------------------------------------------------------------
+
+table content_blocks {
+  id text [pk, not null]
+  key text [not null, unique]          // e.g. 'livestream_url', 'spec_info', 'mobilization_info'
+  title text
+  content text
+  media_id text                        // FK -> media.id
+  updated_at timestamp
+}
+
+// ---------------------------------------------------------------------------
+// Ops
+// ---------------------------------------------------------------------------
+
+table endpoint_analytics {
+  id serial [pk, not null, increment]
+  account_id text
+  endpoint text [not null]
+  method text [not null]
+  status_code integer [not null]
+  response_time_ms integer
+  url_query text
+  request_body text
+  error_message text
+  created_at timestamp [default: `now()`]
+}
+
+// ---------------------------------------------------------------------------
+// References
+// ---------------------------------------------------------------------------
+
+ref: users.id > accounts.id [delete: cascade, update: no action]
+ref: users.keluarga_id > keluargas.id [delete: no action, update: no action]
+ref: users.bata_id > batas.id [delete: no action, update: no action]
+ref: users.foto_media_id > media.id [delete: no action, update: no action]
+
+ref: keluargas.bata_id > batas.id [delete: no action, update: no action]
+
+ref: media.creator_id > accounts.id [delete: no action, update: no action]
+
+ref: handbook.media_id > media.id [delete: no action, update: no action]
+
+ref: user_attendances.schedule_id > attendance_schedules.id [delete: no action, update: no action]
+ref: user_attendances.user_id > users.id [delete: no action, update: no action]
+ref: user_attendances.updated_by > accounts.id [delete: set null, update: no action]
+
+ref: assignments.profil_kat_id > profil_kats.id [delete: no action, update: no action]
+ref: assignment_rubrics.assignment_id > assignments.id [delete: cascade, update: no action]
+ref: assignment_attachments.assignment_id > assignments.id [delete: cascade, update: no action]
+
+ref: users.tag_id > tags.id [delete: set null, update: no action]
+ref: assignments.tag_id > tags.id [delete: set null, update: no action]
+
+ref: assignment_clues.assignment_id > assignments.id [delete: cascade, update: no action]
+ref: assignment_clues.clue_image_media_id > media.id [delete: no action, update: no action]
+ref: user_clue_scans.clue_id > assignment_clues.id [delete: cascade, update: no action]
+ref: user_clue_scans.user_id > users.id [delete: cascade, update: no action]
+
+ref: submissions.assignment_id > assignments.id [delete: no action, update: no action]
+ref: submissions.user_id > users.id [delete: no action, update: no action]
+ref: submissions.media_id > media.id [delete: no action, update: no action]
+ref: submissions.graded_by > accounts.id [delete: set null, update: no action]
+ref: submission_rubric_scores.submission_id > submissions.id [delete: cascade, update: no action]
+ref: submission_rubric_scores.rubric_id > assignment_rubrics.id [delete: cascade, update: no action]
+
+ref: class_registrations.user_id > users.id [delete: no action, update: no action]
+ref: class_registrations.class_id > classes.id [delete: no action, update: no action]
+
+ref: user_matches.first_user_id > users.id [delete: cascade, update: no action]
+ref: user_matches.second_user_id > users.id [delete: cascade, update: no action]
+ref: messages.user_match_id > user_matches.id [delete: cascade, update: no action]
+ref: messages.sender_id > users.id [delete: cascade, update: no action]
+
+ref: content_blocks.media_id > media.id [delete: no action, update: no action]
+
+ref: endpoint_analytics.account_id > accounts.id [delete: set null, update: no action]
