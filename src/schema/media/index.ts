@@ -1,2 +1,2 @@
 export { media } from "./media";
-export { handbook } from "./handbook";
+export { handbook, handbookAccessEnum, handbookCategoryEnum } from "./handbook";

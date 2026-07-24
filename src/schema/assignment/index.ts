@@ -1,4 +1,4 @@
-export { assignmentTypeEnum, assignments } from "./assignments";
+export { assignmentTypeEnum, assignnmentAssigneeEnum, assignments } from "./assignments";
 export { assignmentRubrics } from "./assignment-rubrics";
 export { assignmentAttachments } from "./assignment-attachments";
 export { tags } from "./tags";
