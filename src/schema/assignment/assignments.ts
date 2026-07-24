@@ -7,6 +7,8 @@ export const assignmentTypeEnum = pgEnum("assignment_type_enum", [
   "sidequest_lainnya",
 ]);
 
+export const assignnmentAssigneeEnum = pgEnum("assignment_assignee_enum", ["Keluarga", "Solo"]);
+
 export const assignments = pgTable("assignments", {
   id: text("id").primaryKey().notNull(),
   profilKatId: text("profil_kat_id"),
@@ -15,6 +17,7 @@ export const assignments = pgTable("assignments", {
   day: integer("day"),
   title: text("title").notNull(),
   description: text("description"),
+  assignee: assignnmentAssigneeEnum("assignee").notNull().default("Solo"),
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
   endDate: timestamp("end_date", { withTimezone: true }).notNull(),
   isOpen: boolean("is_open").notNull().default(false),
