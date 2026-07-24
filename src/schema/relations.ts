@@ -5,7 +5,6 @@ import { batas } from "./org/batas";
 import { keluargas } from "./org/keluargas";
 import { media } from "./media/media";
 import { handbook } from "./media/handbook";
-import { handbookCategories } from "./media/handbook-categories";
 import { attendanceSchedules } from "./attendance/schedules";
 import { userAttendances } from "./attendance/user-attendances";
 import { profilKats } from "./assignment/profil-kats";
@@ -92,14 +91,6 @@ export const handbookRelations = relations(handbook, ({ one }) => ({
     fields: [handbook.mediaId],
     references: [media.id],
   }),
-  category: one(handbookCategories, {
-    fields: [handbook.categoryId],
-    references: [handbookCategories.id],
-  }),
-}));
-
-export const handbookCategoriesRelations = relations(handbookCategories, ({ many }) => ({
-  handbooks: many(handbook),
 }));
 
 export const attendanceSchedulesRelations = relations(attendanceSchedules, ({ many }) => ({
