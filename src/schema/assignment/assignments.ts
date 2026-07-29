@@ -18,6 +18,7 @@ export const assignments = pgTable("assignments", {
   title: text("title").notNull(),
   description: text("description"),
   assignee: assignnmentAssigneeEnum("assignee").notNull().default("Solo"),
+  required: boolean().default(true),
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
   endDate: timestamp("end_date", { withTimezone: true }).notNull(),
   isOpen: boolean("is_open").notNull().default(false),
