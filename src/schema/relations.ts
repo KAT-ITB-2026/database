@@ -22,14 +22,26 @@ import { userMatches } from "./chat/user-matches";
 import { messages } from "./chat/messages";
 import { contentBlocks } from "./content/content-blocks";
 import { endpointAnalytics } from "./analytics/endpoint-analytics";
+import { dashboardOskmRefreshTokens } from "./auth/dashboard-oskm-refresh-tokens";
 
 export const accountsRelations = relations(accounts, ({ many }) => ({
   users: many(users),
   media: many(media),
+  dashboardOskmRefreshTokens: many(dashboardOskmRefreshTokens),
   userAttendancesEdited: many(userAttendances),
   submissionsGraded: many(submissions),
   endpointAnalytics: many(endpointAnalytics),
 }));
+
+export const dashboardOskmRefreshTokensRelations = relations(
+  dashboardOskmRefreshTokens,
+  ({ one }) => ({
+    account: one(accounts, {
+      fields: [dashboardOskmRefreshTokens.accountId],
+      references: [accounts.id],
+    }),
+  }),
+);
 
 export const usersRelations = relations(users, ({ one, many }) => ({
   account: one(accounts, {
