@@ -1,10 +1,6 @@
 import { pgEnum, pgTable, text, boolean, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
-export const submissionTypeEnum = pgEnum("submission_type_enum", [
-  "file",
-  "text",
-  "link",
-]);
+export const submissionTypeEnum = pgEnum("submission_type_enum", ["file", "text", "link"]);
 
 export const submissions = pgTable(
   "submissions",
@@ -12,6 +8,7 @@ export const submissions = pgTable(
     id: text("id").primaryKey().notNull(),
     assignmentId: text("assignment_id").notNull(),
     userId: text("user_id").notNull(),
+    keluargaId: text("keluarga_id"),
     submissionType: submissionTypeEnum("submission_type").notNull(),
     mediaId: text("media_id"),
     content: text("content"),

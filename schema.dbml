@@ -25,10 +25,26 @@ enum assignment_type_enum {
   sidequest_lainnya
 }
 
+enum assignment_assignee_enum {
+  Keluarga
+  Solo
+}
+
 enum submission_type_enum {
   file
   text
   link
+}
+
+enum handbook_access_enum {
+  mentor
+  mentor_maba
+}
+
+enum handbook_category_enum {
+  ToR
+  "Buku Besar"
+  Handbook
 }
 
 // ---------------------------------------------------------------------------
@@ -104,6 +120,8 @@ table handbook {
   id text [pk, not null]
   title text [not null]
   media_id text [not null]             // FK -> media.id
+  category handbook_category_enum [not null, default: 'Handbook']
+  access handbook_access_enum [not null, default: 'mentor']
   created_at timestamp [default: `now()`]
   updated_at timestamp
 }
@@ -165,6 +183,8 @@ table assignments {
   day integer
   title text [not null]
   description text
+  assignee assignment_assignee_enum [not null, default: 'Solo']
+  required boolean [default: true]
   start_date "timestamp with time zone" [not null]
   end_date "timestamp with time zone" [not null]   // deadline
   is_open boolean [not null, default: false]
@@ -231,6 +251,7 @@ table submissions {
   id text [pk, not null]
   assignment_id text [not null]        // FK -> assignments.id
   user_id text [not null]              // FK -> users.id
+  keluarga_id text                     // FK -> keluargas.id, nullable
   submission_type submission_type_enum [not null]
   media_id text                        // FK -> media.id, used when type = file
   content text                         // used when type = text or link
@@ -375,6 +396,7 @@ ref: user_clue_scans.user_id > users.id [delete: cascade, update: no action]
 
 ref: submissions.assignment_id > assignments.id [delete: no action, update: no action]
 ref: submissions.user_id > users.id [delete: no action, update: no action]
+ref: submissions.keluarga_id > keluargas.id [delete: no action, update: no action]
 ref: submissions.media_id > media.id [delete: no action, update: no action]
 ref: submissions.graded_by > accounts.id [delete: set null, update: no action]
 ref: submission_rubric_scores.submission_id > submissions.id [delete: cascade, update: no action]
