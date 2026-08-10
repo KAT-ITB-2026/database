@@ -104,13 +104,13 @@ CREATE MATERIALIZED VIEW "public"."individual_leaderboard" AS (
   LEFT JOIN attendance_stats att ON att.user_id = u.id
   CROSS JOIN eligible_schedules es
 );--> statement-breakpoint
-CREATE UNIQUE INDEX "individual_leaderboard_user_id_index" ON "individual_leaderboard" USING btree ("user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "individual_leaderboard_user_id_index" ON "public"."individual_leaderboard" USING btree ("user_id");--> statement-breakpoint
 CREATE VIEW "public"."keluarga_leaderboard" AS (
   SELECT
     keluarga_id,
     keluarga,
     SUM(total_score)::double precision AS final_score
-  FROM individual_leaderboard
+  FROM "public"."individual_leaderboard"
   WHERE keluarga_id IS NOT NULL
   GROUP BY keluarga_id, keluarga
 );
