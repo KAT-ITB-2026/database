@@ -1,5 +1,5 @@
 {
-  "id": "2b61f60b-440e-4d4b-b047-ed2c86eaf54c",
+  "id": "c990f0d9-bc83-4427-839a-061ecedf11da",
   "prevId": "2c2285f1-0b8e-4d55-8cc5-5f7337f006f5",
   "version": "7",
   "dialect": "postgresql",
@@ -1755,34 +1755,7 @@
   "roles": {},
   "policies": {},
   "views": {
-    "public.keluarga_leaderboard": {
-      "columns": {
-        "keluarga_id": {
-          "name": "keluarga_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "keluarga": {
-          "name": "keluarga",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "final_score": {
-          "name": "final_score",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "definition": "\n  SELECT\n    keluarga_id,\n    keluarga,\n    SUM(total_score)::double precision AS final_score\n  FROM individual_leaderboard\n  WHERE keluarga_id IS NOT NULL\n  GROUP BY keluarga_id, keluarga\n",
-      "name": "keluarga_leaderboard",
-      "schema": "public",
-      "isExisting": false,
-      "materialized": false
-    },
-    "public.individual_leaderboard": {
+    "public.recap_snapshot": {
       "columns": {
         "user_id": {
           "name": "user_id",
@@ -1870,7 +1843,7 @@
         }
       },
       "definition": "\n  WITH submission_scores AS (\n    SELECT\n      srs.submission_id,\n      SUM((srs.score / NULLIF(ar.max_score, 0)) * ar.weight) * 100 AS raw_score\n    FROM submission_rubric_scores srs\n    JOIN assignment_rubrics ar ON ar.id = srs.rubric_id\n    WHERE ar.max_score > 0\n    GROUP BY srs.submission_id\n  ),\n  credited_submissions AS (\n    SELECT\n      s.user_id AS target_user_id,\n      s.id AS submission_id,\n      s.assignment_id,\n      p.profil_number,\n      s.submitted_at,\n      ss.raw_score\n    FROM submissions s\n    JOIN assignments a ON a.id = s.assignment_id AND a.assignee = 'Solo'\n    JOIN profil_kats p ON p.id = a.profil_kat_id\n    JOIN submission_scores ss ON ss.submission_id = s.id\n\n    UNION ALL\n\n    SELECT\n      tu.id AS target_user_id,\n      s.id AS submission_id,\n      s.assignment_id,\n      p.profil_number,\n      s.submitted_at,\n      ss.raw_score\n    FROM submissions s\n    JOIN users su ON su.id = s.user_id\n    JOIN assignments a ON a.id = s.assignment_id AND a.assignee = 'Keluarga'\n    JOIN profil_kats p ON p.id = a.profil_kat_id\n    JOIN submission_scores ss ON ss.submission_id = s.id\n    JOIN users tu ON su.keluarga_id IS NOT NULL AND tu.keluarga_id = su.keluarga_id\n  ),\n  best_submission AS (\n    SELECT DISTINCT ON (target_user_id, assignment_id)\n      target_user_id, assignment_id, profil_number, raw_score\n    FROM credited_submissions\n    ORDER BY target_user_id, assignment_id, submitted_at DESC NULLS LAST, submission_id DESC\n  ),\n  profile_scores AS (\n    SELECT\n      target_user_id,\n      profil_number,\n      ROUND(SUM(raw_score)::numeric, 2)::double precision AS profile_score\n    FROM best_submission\n    GROUP BY target_user_id, profil_number\n  ),\n  score_rollup AS (\n    SELECT\n      target_user_id,\n      COALESCE(MAX(profile_score) FILTER (WHERE profil_number = 1), 0)::double precision AS profil_1,\n      COALESCE(MAX(profile_score) FILTER (WHERE profil_number = 2), 0)::double precision AS profil_2,\n      COALESCE(MAX(profile_score) FILTER (WHERE profil_number = 3), 0)::double precision AS profil_3,\n      COALESCE(MAX(profile_score) FILTER (WHERE profil_number = 4), 0)::double precision AS profil_4,\n      COALESCE(MAX(profile_score) FILTER (WHERE profil_number = 5), 0)::double precision AS profil_5,\n      ROUND(SUM(profile_score)::numeric, 2)::double precision AS total_score\n    FROM profile_scores\n    GROUP BY target_user_id\n  ),\n  attendance_stats AS (\n    SELECT\n      ua.user_id,\n      COUNT(*) FILTER (WHERE ua.status = 'hadir') AS hadir\n    FROM user_attendances ua\n    JOIN attendance_schedules asch ON asch.id = ua.schedule_id\n    WHERE asch.start_time <= now()\n    GROUP BY ua.user_id\n  ),\n  eligible_schedules AS (\n    SELECT COUNT(*) AS total\n    FROM attendance_schedules\n    WHERE start_time <= now()\n  )\n  SELECT\n    u.id AS user_id,\n    acc.nim,\n    acc.full_name AS nama,\n    u.keluarga_id,\n    k.name AS keluarga,\n    b.name AS bata,\n    u.fakultas,\n    COALESCE(sr.profil_1, 0)::double precision AS profil_1,\n    COALESCE(sr.profil_2, 0)::double precision AS profil_2,\n    COALESCE(sr.profil_3, 0)::double precision AS profil_3,\n    COALESCE(sr.profil_4, 0)::double precision AS profil_4,\n    COALESCE(sr.profil_5, 0)::double precision AS profil_5,\n    COALESCE(sr.total_score, 0)::double precision AS total_score,\n    CASE WHEN es.total > 0\n      THEN ROUND((COALESCE(att.hadir, 0)::numeric / es.total) * 100, 2)::double precision\n      ELSE 0::double precision\n    END AS presence_percentage\n  FROM users u\n  JOIN accounts acc ON acc.id = u.id\n  LEFT JOIN keluargas k ON k.id = u.keluarga_id\n  LEFT JOIN batas b ON b.id = u.bata_id\n  LEFT JOIN score_rollup sr ON sr.target_user_id = u.id\n  LEFT JOIN attendance_stats att ON att.user_id = u.id\n  CROSS JOIN eligible_schedules es\n",
-      "name": "individual_leaderboard",
+      "name": "recap_snapshot",
       "schema": "public",
       "isExisting": false,
       "materialized": true

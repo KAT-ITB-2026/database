@@ -1,5 +1,24 @@
+CREATE TYPE "public"."handbook_access_enum" AS ENUM('mentor', 'mentor_maba');--> statement-breakpoint
+CREATE TYPE "public"."handbook_category_enum" AS ENUM('ToR', 'Buku Besar', 'Handbook');--> statement-breakpoint
+CREATE TYPE "public"."assignment_assignee_enum" AS ENUM('Keluarga', 'Solo');--> statement-breakpoint
+CREATE TABLE "dashboard_oskm_refresh_tokens" (
+	"jti" text PRIMARY KEY NOT NULL,
+	"account_id" text NOT NULL,
+	"session_started_at" timestamp NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"revoked_at" timestamp,
+	"created_at" timestamp DEFAULT now()
+);
+--> statement-breakpoint
+ALTER TABLE "handbook" ADD COLUMN "category" "handbook_category_enum" DEFAULT 'Handbook' NOT NULL;--> statement-breakpoint
+ALTER TABLE "handbook" ADD COLUMN "access" "handbook_access_enum" DEFAULT 'mentor' NOT NULL;--> statement-breakpoint
+ALTER TABLE "assignments" ADD COLUMN "assignee" "assignment_assignee_enum" DEFAULT 'Solo' NOT NULL;--> statement-breakpoint
+ALTER TABLE "assignments" ADD COLUMN "required" boolean DEFAULT true;--> statement-breakpoint
+ALTER TABLE "submissions" ADD COLUMN "keluarga_id" text;--> statement-breakpoint
+CREATE INDEX "dashboard_oskm_refresh_tokens_account_id_index" ON "dashboard_oskm_refresh_tokens" USING btree ("account_id");--> statement-breakpoint
+CREATE INDEX "dashboard_oskm_refresh_tokens_expires_at_index" ON "dashboard_oskm_refresh_tokens" USING btree ("expires_at");--> statement-breakpoint
 ALTER TABLE "profil_kats" ADD CONSTRAINT "profil_kats_profil_number_range_check" CHECK ("profil_kats"."profil_number" BETWEEN 1 AND 5);--> statement-breakpoint
-CREATE MATERIALIZED VIEW "public"."individual_leaderboard" AS (
+CREATE MATERIALIZED VIEW "public"."recap_snapshot" AS (
   WITH submission_scores AS (
     SELECT
       srs.submission_id,
@@ -104,13 +123,4 @@ CREATE MATERIALIZED VIEW "public"."individual_leaderboard" AS (
   LEFT JOIN attendance_stats att ON att.user_id = u.id
   CROSS JOIN eligible_schedules es
 );--> statement-breakpoint
-CREATE UNIQUE INDEX "individual_leaderboard_user_id_index" ON "public"."individual_leaderboard" USING btree ("user_id");--> statement-breakpoint
-CREATE VIEW "public"."keluarga_leaderboard" AS (
-  SELECT
-    keluarga_id,
-    keluarga,
-    SUM(total_score)::double precision AS final_score
-  FROM "public"."individual_leaderboard"
-  WHERE keluarga_id IS NOT NULL
-  GROUP BY keluarga_id, keluarga
-);
+CREATE UNIQUE INDEX "recap_snapshot_user_id_index" ON "recap_snapshot" USING btree ("user_id");

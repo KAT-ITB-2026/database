@@ -2,10 +2,12 @@ import { doublePrecision, pgMaterializedView, text } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 /**
- * Materialized scoring snapshot used by both the individual and keluarga
- * leaderboards. Profile columns are keyed by profil_kats.profil_number.
+ * Precomputed per-user scoring/attendance rollup backing the mamet/HR recap
+ * feature (recap.repository.ts) — refreshed periodically (kat-crons'
+ * dashboard-recap-refresh job) instead of recomputed on every request.
+ * Profile columns are keyed by profil_kats.profil_number.
  */
-export const individualLeaderboard = pgMaterializedView("individual_leaderboard", {
+export const recapSnapshot = pgMaterializedView("recap_snapshot", {
   userId: text("user_id").notNull(),
   nim: text("nim").notNull(),
   nama: text("nama"),
