@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text, timestamp, integer, boolean, real } from "drizzle-orm/pg-core";
 
 export const assignmentTypeEnum = pgEnum("assignment_type_enum", [
   "wajib",
@@ -22,6 +22,7 @@ export const assignments = pgTable("assignments", {
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
   endDate: timestamp("end_date", { withTimezone: true }).notNull(),
   isOpen: boolean("is_open").notNull().default(false),
+  maxScore: real("max_score").notNull().default(100),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at"),
 });
