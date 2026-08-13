@@ -55,6 +55,7 @@ table accounts {
   id text [pk, not null]
   nim text [not null, unique]
   email text [not null, unique]        // ITB email, used for SSO login
+  password_hash text [not null]
   full_name text
   role accounts_role_enum [not null, default: 'user']
   last_logged_in timestamp
@@ -267,6 +268,20 @@ table submissions {
   }
 }
 
+table submission_parts {
+  id text [pk, not null]
+  submission_id text [not null]        // FK -> submissions.id
+  part_type submission_type_enum [not null]
+  media_id text                        // FK -> media.id, used when type = file
+  content text                         // used when type = text or link
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    (submission_id, part_type) [unique]
+  }
+}
+
 table submission_rubric_scores {
   id text [pk, not null]
   submission_id text [not null]        // FK -> submissions.id
@@ -399,6 +414,8 @@ ref: submissions.user_id > users.id [delete: no action, update: no action]
 ref: submissions.keluarga_id > keluargas.id [delete: no action, update: no action]
 ref: submissions.media_id > media.id [delete: no action, update: no action]
 ref: submissions.graded_by > accounts.id [delete: set null, update: no action]
+ref: submission_parts.submission_id > submissions.id [delete: no action, update: no action]
+ref: submission_parts.media_id > media.id [delete: no action, update: no action]
 ref: submission_rubric_scores.submission_id > submissions.id [delete: cascade, update: no action]
 ref: submission_rubric_scores.rubric_id > assignment_rubrics.id [delete: cascade, update: no action]
 

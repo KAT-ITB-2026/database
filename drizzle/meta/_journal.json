@@ -29,6 +29,13 @@
       "when": 1786543409166,
       "tag": "0003_recap-snapshot-user-id-index",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786633186601,
+      "tag": "0004_submission_parts",
+      "breakpoints": true
     }
   ]
 }
