@@ -12,6 +12,7 @@ export const accounts = pgTable("accounts", {
   id: text("id").primaryKey().notNull(),
   nim: text("nim").notNull().unique(),
   email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
   fullName: text("full_name"),
   role: accountsRoleEnum("role").notNull().default("user"),
   lastLoggedIn: timestamp("last_logged_in"),
