@@ -15,6 +15,7 @@ import { tags } from "./assignment/tags";
 import { assignmentClues } from "./assignment/assignment-clues";
 import { userClueScans } from "./assignment/user-clue-scans";
 import { submissions } from "./assignment/submissions";
+import { submissionParts } from "./assignment/submission-parts";
 import { submissionRubricScores } from "./assignment/submission-rubric-scores";
 import { classes } from "./class/classes";
 import { classRegistrations } from "./class/class-registrations";
@@ -95,6 +96,7 @@ export const mediaRelations = relations(media, ({ one, many }) => ({
   handbooks: many(handbook),
   clueImages: many(assignmentClues),
   submissions: many(submissions),
+  submissionParts: many(submissionParts),
   contentBlocks: many(contentBlocks),
 }));
 
@@ -203,7 +205,19 @@ export const submissionsRelations = relations(submissions, ({ one, many }) => ({
     fields: [submissions.gradedBy],
     references: [accounts.id],
   }),
+  parts: many(submissionParts),
   rubricScores: many(submissionRubricScores),
+}));
+
+export const submissionPartsRelations = relations(submissionParts, ({ one }) => ({
+  submission: one(submissions, {
+    fields: [submissionParts.submissionId],
+    references: [submissions.id],
+  }),
+  media: one(media, {
+    fields: [submissionParts.mediaId],
+    references: [media.id],
+  }),
 }));
 
 export const submissionRubricScoresRelations = relations(submissionRubricScores, ({ one }) => ({

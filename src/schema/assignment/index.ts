@@ -5,5 +5,6 @@ export { tags } from "./tags";
 export { assignmentClues } from "./assignment-clues";
 export { userClueScans } from "./user-clue-scans";
 export { submissionTypeEnum, submissions } from "./submissions";
+export { submissionParts } from "./submission-parts";
 export { submissionRubricScores } from "./submission-rubric-scores";
 export { profilKats } from "./profil-kats";
