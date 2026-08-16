@@ -1,34 +1,5 @@
-import { doublePrecision, pgMaterializedView, text } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
-
-/**
- * Precomputed per-user scoring/attendance rollup backing the mamet/HR recap
- * feature (recap.repository.ts) — refreshed periodically (kat-crons'
- * dashboard-recap-refresh job) instead of recomputed on every request.
- * Profile columns are keyed by profil_kats.profil_number.
- *
- * Flagged submissions (submissions.is_flagged) are excluded from
- * credited_submissions in both the Solo and Keluarga branches — a flag
- * removes a submission from the recap total without touching its stored
- * rubric scores, mirroring submission-credit.repository.ts's
- * findCreditedSubmissionRubricRows on the live (non-snapshot) recap path.
- */
-export const recapSnapshot = pgMaterializedView("recap_snapshot", {
-  userId: text("user_id").notNull(),
-  nim: text("nim").notNull(),
-  nama: text("nama"),
-  keluargaId: text("keluarga_id"),
-  keluarga: text("keluarga"),
-  bata: text("bata"),
-  fakultas: text("fakultas"),
-  profil1: doublePrecision("profil_1").notNull(),
-  profil2: doublePrecision("profil_2").notNull(),
-  profil3: doublePrecision("profil_3").notNull(),
-  profil4: doublePrecision("profil_4").notNull(),
-  profil5: doublePrecision("profil_5").notNull(),
-  totalScore: doublePrecision("total_score").notNull(),
-  presencePercentage: doublePrecision("presence_percentage").notNull(),
-}).as(sql`
+DROP MATERIALIZED VIEW "public"."recap_snapshot";--> statement-breakpoint
+CREATE MATERIALIZED VIEW "public"."recap_snapshot" AS (
   WITH submission_scores AS (
     SELECT
       srs.submission_id,
@@ -136,4 +107,12 @@ export const recapSnapshot = pgMaterializedView("recap_snapshot", {
   LEFT JOIN score_rollup sr ON sr.target_user_id = u.id
   LEFT JOIN attendance_stats att ON att.user_id = u.id
   CROSS JOIN eligible_schedules es
-`);
+);
+--> statement-breakpoint
+-- DROP MATERIALIZED VIEW cascades to its indexes, so the unique index
+-- REFRESH MATERIALIZED VIEW CONCURRENTLY requires (dashboard-recap-refresh
+-- cron) must be recreated here too — it isn't tracked in recap-snapshot.ts's
+-- drizzle schema (pgMaterializedView doesn't declare it), only ever existed
+-- as raw SQL appended to 0001_mean_obadiah_stane.sql, so `generate` has no
+-- way to know to reproduce it automatically.
+CREATE UNIQUE INDEX "recap_snapshot_user_id_index" ON "recap_snapshot" USING btree ("user_id");
