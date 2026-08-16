@@ -1,0 +1,2 @@
+ALTER TABLE "attendance_schedules" ADD COLUMN "attendance_window_start_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "attendance_schedules" ADD COLUMN "attendance_window_end_at" timestamp with time zone;
