@@ -50,6 +50,13 @@
       "when": 1786880790627,
       "tag": "0006_third_ricochet",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787805484216,
+      "tag": "0007_redundant_gorgon",
+      "breakpoints": true
     }
   ]
 }
