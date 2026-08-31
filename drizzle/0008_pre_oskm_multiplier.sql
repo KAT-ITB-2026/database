@@ -52,7 +52,7 @@ CREATE MATERIALIZED VIEW "public"."recap_snapshot" AS (
       srs.submission_id,
       SUM((srs.score / NULLIF(ar.max_score, 0)) * ar.weight)
         * MAX(a.max_score)
-        * MAX(pre_oskm_multiplier(s.submitted_at, a.type)) AS raw_score
+        * MAX(pre_oskm_multiplier(s.submitted_at, a.type::text)) AS raw_score
     FROM submission_rubric_scores srs
     JOIN assignment_rubrics ar ON ar.id = srs.rubric_id
     JOIN submissions s ON s.id = srs.submission_id
